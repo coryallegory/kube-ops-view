@@ -25,18 +25,12 @@ test: lint install
 version:
 	sed -i "s/kube-ops-view:.*/kube-ops-view:$(VERSION)/" deploy/*.yaml
 
-appjs:
-	docker run $(TTYFLAGS) -u $$(id -u) -v $$(pwd):/workdir -w /workdir/app -e NPM_CONFIG_CACHE=/tmp node:14.0-slim npm install
-	docker run $(TTYFLAGS) -u $$(id -u) -v $$(pwd):/workdir -w /workdir/app -e NPM_CONFIG_CACHE=/tmp node:14.0-slim npm run build
-
-docker: appjs
+docker:
 	docker build --build-arg "VERSION=$(VERSION)" -t "$(IMAGE):$(TAG)" .
 	@echo 'Docker image $(IMAGE):$(TAG) can now be used.'
 
-docker-arm: appjs
-	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-	docker buildx create --name arm-node --append --use --platform "linux/arm"
-	docker buildx build --build-arg "VERSION=$(VERSION)" --platform "linux/arm" -t $(IMAGE):$(TAG) --load .
+docker-multi:
+	docker buildx build --build-arg "VERSION=$(VERSION)" --platform "linux/amd64,linux/arm64" -t $(IMAGE):$(TAG) --load .
 	@echo 'Docker image $(IMAGE):$(TAG) can now be used.'
 
 push: docker
